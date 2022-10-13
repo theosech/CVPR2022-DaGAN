@@ -35,10 +35,11 @@ def load_checkpoints(config_path, checkpoint_path, cpu=False):
                              **config['model_params']['common_params'])
     if not cpu:
         kp_detector.cuda()
-    if cpu:
-        checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
-    else:
-        checkpoint = torch.load(checkpoint_path,map_location="cuda:0")
+
+    device = torch.device('cpu') if cpu else torch.device('cuda:0')
+    
+    checkpoint = {"generator": torch.load("{}/generator.pt".format(checkpoint_path), map_location=device),
+                    "kp_detector": torch.load("{}/kp_detector.pt".format(checkpoint_path), map_location=device)}
         
     ckp_generator = OrderedDict((k.replace('module.',''),v) for k,v in checkpoint['generator'].items())
     generator.load_state_dict(ckp_generator)
@@ -162,8 +163,8 @@ if __name__ == "__main__":
 
     depth_encoder = depth.ResnetEncoder(18, False)
     depth_decoder = depth.DepthDecoder(num_ch_enc=depth_encoder.num_ch_enc, scales=range(4))
-    loaded_dict_enc = torch.load('depth/models/weights_19/encoder.pth')
-    loaded_dict_dec = torch.load('depth/models/weights_19/depth.pth')
+    loaded_dict_enc = torch.load('checkpoints/depth_face_model/encoder.pth', map_location=torch.device('cpu') if opt.cpu else "cuda:0")
+    loaded_dict_dec = torch.load('checkpoints/depth_face_model/depth.pth', map_location=torch.device('cpu') )
     filtered_dict_enc = {k: v for k, v in loaded_dict_enc.items() if k in depth_encoder.state_dict()}
     depth_encoder.load_state_dict(filtered_dict_enc)
     depth_decoder.load_state_dict(loaded_dict_dec)
